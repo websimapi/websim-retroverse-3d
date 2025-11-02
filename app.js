@@ -48,9 +48,11 @@ async function main() {
                 setPlayerPosition(myPlayerData.position);
             } else {
                 console.log("No previous position found for this player. Starting at default location.");
+                setPlayerPosition({ x: 0, y: 0.5, z: 0 });
             }
         } else {
             console.log("Game state or player data slot not found. Starting at default location.");
+            setPlayerPosition({ x: 0, y: 0.5, z: 0 });
         }
 
 

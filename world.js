@@ -23,6 +23,9 @@ export function getPlayer() {
 
 export function setPlayerPosition(position) {
     if (player && position) {
+        if (!player.parent) {
+            scene.add(player);
+        }
         player.position.set(position.x, position.y, position.z);
         targetPosition.copy(player.position);
 
@@ -156,7 +159,7 @@ export function initWorld(canvas) {
     const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     player = new THREE.Mesh(playerGeo, playerMat);
     player.position.y = 0.5;
-    scene.add(player);
+    // scene.add(player);
     targetPosition = player.position.clone();
 
     // Raycasting for movement
