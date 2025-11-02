@@ -1,7 +1,7 @@
 import { initHost } from './host.js';
 import { initPlayer } from './player.js';
 import { initWorld, setPlayerPosition } from './world.js';
-import { subscribeToGameState, getGameStateRecord } from './database.js';
+import { subscribeToGameState } from './database.js';
 
 const statusEl = document.getElementById('status');
 const roleEl = document.getElementById('role');
@@ -18,23 +18,16 @@ async function main() {
         await room.initialize();
         statusEl.textContent = 'Connected to Retroverse.';
 
-        // Function to wait for the game state to be available.
-        const waitForGameState = async () => {
-             // First, try a quick fetch.
-            let state = await getGameStateRecord(room);
-            if (state) {
-                console.log("Game state immediately available:", state);
-                return state;
-            }
-
-            // If not available, subscribe and wait.
+        // A more robust way to wait for the initial game state.
+        const waitForGameState = () => {
             console.log("Waiting for game state from database...");
             return new Promise((resolve) => {
-                const unsubscribe = subscribeToGameState(room, (newState) => {
-                    if (newState) {
-                        console.log("Game state received via subscription:", newState);
+                const unsubscribe = subscribeToGameState(room, (state) => {
+                    // We wait for the first non-null state, which indicates the DB is synced.
+                    if (state) {
+                        console.log("Game state received:", state);
                         unsubscribe();
-                        resolve(newState);
+                        resolve(state);
                     }
                 });
             });
@@ -47,20 +40,22 @@ async function main() {
             window.websim.getCurrentUser()
         ]);
 
-        // Use the fetched state to set the initial player position
-        if (gameState && gameState.slot_1) {
+        // Determine initial position from the fetched game state
+        let initialPosition = { x: 0, y: 0.5, z: 0 }; // Default position
+        if (gameState && gameState.slot_1 && gameState.slot_1[currentUser.id]) {
             const myPlayerData = gameState.slot_1[currentUser.id];
             if (myPlayerData && myPlayerData.position) {
                 console.log("Found last known position. Teleporting player.", myPlayerData.position);
-                setPlayerPosition(myPlayerData.position);
+                initialPosition = myPlayerData.position;
             } else {
-                console.log("No previous position found for this player. Starting at default location.");
-                setPlayerPosition({ x: 0, y: 0.5, z: 0 });
+                console.log("Player data found, but no position. Using default.");
             }
         } else {
-            console.log("Game state or player data slot not found. Starting at default location.");
-            setPlayerPosition({ x: 0, y: 0.5, z: 0 });
+            console.log("No previous game state found for this player. Using default.");
         }
+        
+        // Set the player's position. This function also adds the player to the scene.
+        setPlayerPosition(initialPosition);
 
 
         const isHost = creator.username === currentUser.username;
@@ -70,7 +65,7 @@ async function main() {
             uiContainerEl.style.display = 'block'; // Show for host
             hostViewEl.style.display = 'block';
             playerViewEl.style.display = 'none'; // Hide player view for host
-            initHost(room, dataDisplayEl);
+            initHost(room, dataDisplayEl, gameState);
 
             window.addEventListener('keydown', (event) => {
                 if (event.key === '`' || event.key === '~') {

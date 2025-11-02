@@ -3,12 +3,17 @@ import { getPlayer } from './world.js';
 
 const UPDATE_INTERVAL = 200; // 5 times per second
 
-export async function initHost(room, dataDisplayEl) {
+export async function initHost(room, dataDisplayEl, initialGameState) {
     console.log("Initializing Host...");
-    const gameStateRecord = await initializeDatabase(room);
+    let gameStateRecord = initialGameState;
+
+    // If for some reason initialGameState is not passed, initialize it.
     if (!gameStateRecord) {
-        dataDisplayEl.textContent = "Error: Could not initialize or find game state record.";
-        return;
+        gameStateRecord = await initializeDatabase(room);
+        if (!gameStateRecord) {
+            dataDisplayEl.textContent = "Error: Could not initialize or find game state record.";
+            return;
+        }
     }
 
     const recordId = gameStateRecord.id;
