@@ -1,7 +1,7 @@
 import { initHost } from './host.js';
 import { initPlayer } from './player.js';
 import { initWorld, setPlayerPosition } from './world.js';
-import { getGameStateRecord } from './database.js';
+import { subscribeToGameState } from './database.js';
 
 const statusEl = document.getElementById('status');
 const roleEl = document.getElementById('role');
@@ -18,14 +18,22 @@ async function main() {
         await room.initialize();
         statusEl.textContent = 'Connected to Retroverse.';
 
-        // Fetch initial game state. It might take a moment for data to be available.
-        let gameState = await getGameStateRecord(room);
-        if (!gameState) {
-            console.log("Initial game state not found, waiting a bit...");
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            gameState = await getGameStateRecord(room);
-            console.log("Game state after waiting:", gameState);
-        }
+        // Function to wait for the game state to be available.
+        const waitForGameState = () => {
+            return new Promise((resolve) => {
+                const unsubscribe = subscribeToGameState(room, (state) => {
+                    if (state) {
+                        console.log("Game state received:", state);
+                        unsubscribe();
+                        resolve(state);
+                    } else {
+                        console.log("Waiting for game state from database...");
+                    }
+                });
+            });
+        };
+
+        const gameState = await waitForGameState();
 
         const [creator, currentUser] = await Promise.all([
             window.websim.getCreatedBy(),
@@ -39,10 +47,10 @@ async function main() {
                 console.log("Found last known position. Teleporting player.", myPlayerData.position);
                 setPlayerPosition(myPlayerData.position);
             } else {
-                console.log("No previous position found for this player.");
+                console.log("No previous position found for this player. Starting at default location.");
             }
         } else {
-            console.log("Game state or player data slot not found.");
+            console.log("Game state or player data slot not found. Starting at default location.");
         }
 
 
