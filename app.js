@@ -1,6 +1,6 @@
 import { initHost } from './host.js';
 import { initPlayer } from './player.js';
-import { initWorld, setPlayerPosition } from './world.js';
+import { initWorld, createPlayer } from './world.js';
 import { subscribeToGameState } from './database.js';
 
 const statusEl = document.getElementById('status');
@@ -54,8 +54,8 @@ async function main() {
             console.log("No previous game state found for this player. Using default.");
         }
         
-        // Set the player's position. This function also adds the player to the scene.
-        setPlayerPosition(initialPosition);
+        // Create the player at the correct initial position.
+        createPlayer(initialPosition);
 
 
         const isHost = creator.username === currentUser.username;

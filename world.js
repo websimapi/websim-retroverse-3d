@@ -21,6 +21,21 @@ export function getPlayer() {
     return player;
 }
 
+export function createPlayer(position) {
+    if (player) { // Don't create if it already exists
+        console.warn("Player already exists.");
+        setPlayerPosition(position); // Just teleport instead
+        return;
+    }
+    const playerGeo = new THREE.BoxGeometry(1, 1, 1);
+    const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    player = new THREE.Mesh(playerGeo, playerMat);
+    targetPosition = player.position.clone();
+    scene.add(player);
+
+    setPlayerPosition(position);
+}
+
 export function setPlayerPosition(position) {
     if (player && position) {
         if (!player.parent) {
@@ -155,12 +170,15 @@ export function initWorld(canvas) {
     // Controls removed for fixed camera
 
     // Player Character
+    // Player is now created on-demand by createPlayer() after DB load
+    /*
     const playerGeo = new THREE.BoxGeometry(1, 1, 1);
     const playerMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     player = new THREE.Mesh(playerGeo, playerMat);
     player.position.y = 0.5;
     // scene.add(player);
     targetPosition = player.position.clone();
+    */
 
     // Raycasting for movement
     raycaster = new THREE.Raycaster();
@@ -196,6 +214,8 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     
+    if (!player) return; // Don't run animation logic until player is created
+
     const delta = clock.getDelta();
     const moveSpeed = 10 * delta;
 
