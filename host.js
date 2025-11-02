@@ -29,12 +29,12 @@ export async function initHost(room, dataDisplayEl) {
     });
 
     function cleanDisconnectedPlayers() {
-        const connectedClientIds = Object.keys(room.peers);
+        const connectedUserIds = new Set(Object.values(room.peers).map(p => p.id));
         let updated = false;
-        for (const clientId in playersData) {
-            if (!connectedClientIds.includes(clientId)) {
-                console.log(`Player ${playersData[clientId]?.username} (${clientId}) disconnected. Removing from data.`);
-                delete playersData[clientId];
+        for (const userId in playersData) {
+            if (!connectedUserIds.has(userId)) {
+                console.log(`Player ${playersData[userId]?.username} (${userId}) disconnected. Removing from data.`);
+                delete playersData[userId];
                 updated = true;
             }
         }
@@ -53,9 +53,10 @@ export async function initHost(room, dataDisplayEl) {
     setInterval(() => {
         // Update host's own data
         const hostPlayer = getPlayer();
-        if (hostPlayer) {
-            playersData[room.clientId] = {
-                username: room.peers[room.clientId]?.username || 'HOST',
+        const hostPeer = room.peers[room.clientId];
+        if (hostPlayer && hostPeer) {
+            playersData[hostPeer.id] = {
+                username: hostPeer.username || 'HOST',
                 position: {
                     x: hostPlayer.position.x,
                     y: hostPlayer.position.y,
@@ -74,12 +75,13 @@ export async function initHost(room, dataDisplayEl) {
     room.onmessage = (event) => {
         const { data, clientId } = event;
         const { type, position } = data;
+        const peer = room.peers[clientId];
 
-        if (clientId === room.clientId) return;
+        if (!peer) return;
 
         if (type === 'player_position_update') {
-            playersData[clientId] = {
-                username: room.peers[clientId]?.username,
+            playersData[peer.id] = {
+                username: peer.username,
                 position,
                 timestamp: new Date().toISOString()
             };

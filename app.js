@@ -42,7 +42,7 @@ async function main() {
 
         // Use the fetched state to set the initial player position
         if (gameState && gameState.slot_1) {
-            const myPlayerData = gameState.slot_1[room.clientId];
+            const myPlayerData = gameState.slot_1[currentUser.id];
             if (myPlayerData && myPlayerData.position) {
                 console.log("Found last known position. Teleporting player.", myPlayerData.position);
                 setPlayerPosition(myPlayerData.position);
