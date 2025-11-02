@@ -1,7 +1,7 @@
 import { initHost } from './host.js';
 import { initPlayer } from './player.js';
 import { initWorld, setPlayerPosition } from './world.js';
-import { subscribeToGameState } from './database.js';
+import { subscribeToGameState, getGameStateRecord } from './database.js';
 
 const statusEl = document.getElementById('status');
 const roleEl = document.getElementById('role');
@@ -19,15 +19,22 @@ async function main() {
         statusEl.textContent = 'Connected to Retroverse.';
 
         // Function to wait for the game state to be available.
-        const waitForGameState = () => {
+        const waitForGameState = async () => {
+             // First, try a quick fetch.
+            let state = await getGameStateRecord(room);
+            if (state) {
+                console.log("Game state immediately available:", state);
+                return state;
+            }
+
+            // If not available, subscribe and wait.
+            console.log("Waiting for game state from database...");
             return new Promise((resolve) => {
-                const unsubscribe = subscribeToGameState(room, (state) => {
-                    if (state) {
-                        console.log("Game state received:", state);
+                const unsubscribe = subscribeToGameState(room, (newState) => {
+                    if (newState) {
+                        console.log("Game state received via subscription:", newState);
                         unsubscribe();
-                        resolve(state);
-                    } else {
-                        console.log("Waiting for game state from database...");
+                        resolve(newState);
                     }
                 });
             });

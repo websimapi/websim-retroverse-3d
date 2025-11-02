@@ -15,6 +15,16 @@ export async function initHost(room, dataDisplayEl) {
     // Use a deep copy to prevent race conditions with the subscribe callback
     let playersData = JSON.parse(JSON.stringify(gameStateRecord.slot_1 || {}));
     
+    // Initialize host's own player data if it doesn't exist from a previous session
+    const hostPeer = room.peers[room.clientId];
+    if (hostPeer && !playersData[hostPeer.id]) {
+         playersData[hostPeer.id] = {
+            username: hostPeer.username || 'HOST',
+            position: { x: 0, y: 0.5, z: 0 },
+            timestamp: new Date().toISOString()
+        };
+    }
+    
     // Initialize world data if it doesn't exist
     if (!gameStateRecord.slot_0 || gameStateRecord.slot_0.seed === undefined) {
         await updateWorldData(room, recordId, { seed: 0 });
@@ -49,27 +59,30 @@ export async function initHost(room, dataDisplayEl) {
     cleanDisconnectedPlayers();
 
 
-    // Main update loop for host
-    setInterval(() => {
-        // Update host's own data
-        const hostPlayer = getPlayer();
-        const hostPeer = room.peers[room.clientId];
-        if (hostPlayer && hostPeer) {
-            playersData[hostPeer.id] = {
-                username: hostPeer.username || 'HOST',
-                position: {
-                    x: hostPlayer.position.x,
-                    y: hostPlayer.position.y,
-                    z: hostPlayer.position.z,
-                },
-                timestamp: new Date().toISOString()
-            };
-        }
+    // Main update loop for host - delayed slightly to allow initial state to settle
+    setTimeout(() => {
+        setInterval(() => {
+            // Update host's own data
+            const hostPlayer = getPlayer();
+            const currentHostPeer = room.peers[room.clientId];
+            if (hostPlayer && currentHostPeer) {
+                playersData[currentHostPeer.id] = {
+                    username: currentHostPeer.username || 'HOST',
+                    position: {
+                        x: hostPlayer.position.x,
+                        y: hostPlayer.position.y,
+                        z: hostPlayer.position.z,
+                    },
+                    timestamp: new Date().toISOString()
+                };
+            }
 
-        // Persist the collected player data
-        updatePlayersData(room, recordId, playersData);
+            // Persist the collected player data
+            updatePlayersData(room, recordId, playersData);
 
-    }, UPDATE_INTERVAL);
+        }, UPDATE_INTERVAL);
+    }, 500);
+
 
     // Listen for player messages
     room.onmessage = (event) => {
