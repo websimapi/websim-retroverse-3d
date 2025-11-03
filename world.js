@@ -42,7 +42,9 @@ export function setPlayerPosition(position) {
             scene.add(player);
         }
         player.position.set(position.x, position.y, position.z);
-        targetPosition.copy(player.position);
+        if (targetPosition) { // Guard against targetPosition being undefined
+            targetPosition.copy(player.position);
+        }
 
         // Instantly move camera to new position
         const cameraOffset = new THREE.Vector3(0, 30, 0.1);
@@ -138,6 +140,8 @@ function updateChunks() {
 function onDocumentMouseDown(event) {
     event.preventDefault();
 
+    if (!player) return; // Do nothing if the player hasn't been created yet.
+
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
@@ -188,7 +192,7 @@ export function initWorld(canvas) {
     groundPlane = new THREE.Mesh(planeGeo, planeMat);
     scene.add(groundPlane);
 
-    renderer.domElement.addEventListener('mousemove', onDocumentMouseDown, false);
+    renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
 
 
     // Post-processing
