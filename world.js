@@ -192,7 +192,7 @@ export function initWorld(canvas) {
     groundPlane = new THREE.Mesh(planeGeo, planeMat);
     scene.add(groundPlane);
 
-    renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
+    renderer.domElement.addEventListener('mousemove', onDocumentMouseDown, false);
 
 
     // Post-processing
@@ -217,25 +217,25 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-    
-    if (!player) return; // Don't run animation logic until player is created
 
-    const delta = clock.getDelta();
-    const moveSpeed = 10 * delta;
+    if (player) {
+        const delta = clock.getDelta();
+        const moveSpeed = 10 * delta;
 
-    // Move player towards target
-    if (player.position.distanceTo(targetPosition) > 0.1) {
-        const direction = targetPosition.clone().sub(player.position).normalize();
-        player.position.add(direction.multiplyScalar(moveSpeed));
+        // Move player towards target
+        if (player.position.distanceTo(targetPosition) > 0.1) {
+            const direction = targetPosition.clone().sub(player.position).normalize();
+            player.position.add(direction.multiplyScalar(moveSpeed));
+            
+            // Check if chunks need updating after moving
+            updateChunks();
+        }
         
-        // Check if chunks need updating after moving
-        updateChunks();
+        // Update camera to follow player from a fixed top-down perspective
+        const cameraOffset = new THREE.Vector3(0, 30, 0.1); // Slight z-offset to ensure lookAt works correctly
+        camera.position.copy(player.position).add(cameraOffset);
+        camera.lookAt(player.position);
     }
-    
-    // Update camera to follow player from a fixed top-down perspective
-    const cameraOffset = new THREE.Vector3(0, 30, 0.1); // Slight z-offset to ensure lookAt works correctly
-    camera.position.copy(player.position).add(cameraOffset);
-    camera.lookAt(player.position);
 
     composer.render();
 }
