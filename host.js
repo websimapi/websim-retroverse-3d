@@ -6,6 +6,7 @@ const UPDATE_INTERVAL = 200; // 5 times per second
 export async function initHost(room, dataDisplayEl, initialGameState) {
     console.log("Initializing Host...");
     let gameStateRecord = initialGameState;
+    let needsImmediateSave = false;
 
     // If for some reason initialGameState is not passed, initialize it.
     if (!gameStateRecord) {
@@ -28,11 +29,19 @@ export async function initHost(room, dataDisplayEl, initialGameState) {
             position: { x: 0, y: 0.5, z: 0 },
             timestamp: new Date().toISOString()
         };
+        needsImmediateSave = true;
     }
     
     // Initialize world data if it doesn't exist
     if (!gameStateRecord.slot_0 || gameStateRecord.slot_0.seed === undefined) {
         await updateWorldData(room, recordId, { seed: 0 });
+    }
+
+    // If we added the host's data for the first time, save it immediately.
+    // This makes sure their own position is available for the character creation step.
+    if (needsImmediateSave) {
+        console.log("Performing immediate save of initial host player data...");
+        await updatePlayersData(room, recordId, playersData);
     }
 
     subscribeToGameState(room, (state) => {
